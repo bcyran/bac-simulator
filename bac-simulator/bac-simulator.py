@@ -165,24 +165,24 @@ def calc_abs_tab(intakes_tab):
 
 # Table with total absorption, total elimination
 # and current bac for each timestamp
-def calc_bac_tab(abs_tab, vda):
+def calc_bac_tab(abs_tab, vda, first_intake, last_intake):
     bac_tab = []
 
-    i = 0
     # Iterate until all alcohol is eliminated
+    current_time = first_intake
+    i = 0
     while True:
         # Sum absorption from current timestamp
         total_absorbed = 0
         if i < len(abs_tab):
-            for intake_absorption in abs_tab[i]:
-                total_absorbed += intake_absorption
+            total_absorbed = sum(abs_tab[i])
         else:
-            total_absorbed = bac_tab[i - 1][0]
+            total_absorbed = bac_tab[i - 1][1]
 
         # Calculate total elimination
         if i > 0:
-            prev_bac = bac_tab[i - 1][2]
-            total_eliminated = bac_tab[i - 1][1]
+            prev_bac = bac_tab[i - 1][3]
+            total_eliminated = bac_tab[i - 1][2]
             current_aer = calc_aer(USER_PREFS['sex'], prev_bac)
             current_eliminated = current_aer * (USER_PREFS['interval'] / 60)
             total_eliminated += current_eliminated
@@ -197,27 +197,25 @@ def calc_bac_tab(abs_tab, vda):
             current_bac = 0
 
         # Write data to table
-        bac_tab.append([total_absorbed, total_eliminated, current_bac])
+        bac_tab.append([current_time, total_absorbed, total_eliminated, current_bac])
 
         # Stop loop when BAC equals 0
-        if bac_tab[i][2] == 0 and i != 0:
+        if current_bac == 0 and last_intake < current_time:
             break
 
+        current_time = current_time + timedelta(minutes=USER_PREFS['interval'])
         i += 1
 
     return bac_tab
 
 
 # Print out calculated data
-def print_data(bac_tab, start_time):
-    current_time = start_time
+def print_data(bac_tab):
     print('TIME  - BAC')
 
-    for i, row in enumerate(bac_tab):
-        time = current_time.strftime('%H:%M')
-        print('{0} - {1:.2f}'.format(time, row[2]))
-
-        current_time = current_time + timedelta(minutes=USER_PREFS['interval'])
+    for row in bac_tab:
+        time = row[0].strftime('%H:%M')
+        print('{0} - {1:.2f}'.format(time, row[3]))
 
 
 # Main
@@ -235,10 +233,11 @@ def main():
     vda = calc_vda(USER_PREFS['sex'], USER_PREFS['weight'],
                    USER_PREFS['height'])
     abs_tab = calc_abs_tab(intakes_tab)
-    bac_tab = calc_bac_tab(abs_tab, vda)
+    bac_tab = calc_bac_tab(abs_tab, vda, intakes_tab[0][0],
+                           intakes_tab[len(intakes_tab) - 1][0])
 
     # And print result
-    print_data(bac_tab, intakes_tab[0][0])
+    print_data(bac_tab)
 
 
 if __name__ == '__main__':
