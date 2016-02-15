@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# BAC Simulator | GPL v2.0 | https://github.com/sajran/bac-simulator
+
 from datetime import datetime, timedelta
 from pprint import pprint
 from math import exp
