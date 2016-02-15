@@ -23,6 +23,14 @@ def read_data(data_file):
     for intake in raw_intakes:
         intake_time = datetime.strptime(intake[0], '%d.%m.%Y-%H:%M')
         intake_amount = float(intake[2]) / 100 * float(intake[1])
+
+        # If time of drinking is given
+        if len(intake) == 4:
+            sub_intakes = split_intake(intake_time, intake_amount,
+                                       int(intake[3]))
+            intakes_tab.extend(sub_intakes)
+            continue
+
         intakes_tab.append([intake_time, intake_amount])
 
     return intakes_tab
@@ -42,6 +50,20 @@ def read_prefs(data_file):
     USER_PREFS['height'] = float(raw_prefs[2])
     USER_PREFS['abs_rate'] = float(raw_prefs[3])
     USER_PREFS['interval'] = float(raw_prefs[4])
+
+
+# Split long drinking into smaller intakes
+def split_intake(time, amount, duration):
+    sub_amount = amount / duration
+    sub_intakes = []
+
+    # Proportional intake every minute
+    current_time = time
+    for i in range(0, duration):
+        sub_intakes.append([current_time, sub_amount])
+        current_time = current_time + timedelta(minutes=1)
+
+    return sub_intakes
 
 
 # Calculate alcohol elimination rate (AER)
