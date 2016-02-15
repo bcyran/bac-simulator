@@ -144,11 +144,11 @@ def calc_abs_tab(intakes_tab):
                 abs_tab[i].append(0)
                 continue
 
-            # Calculate and write absorbed amount
+            # Calculate and write amount of alcohol absorbed so far
             amount = intakes_tab[j][1]
             delta = (current_time - intakes_tab[j][0]).seconds / 3600
-            absorbed = calc_absorbed(amount, USER_PREFS['abs_rate'], delta)
-            abs_tab[i].append(absorbed)
+            absorbed_so_far = calc_absorbed(amount, USER_PREFS['abs_rate'], delta)
+            abs_tab[i].append(absorbed_so_far)
 
         # Stop loop when last intake is fully absorbed
         if (abs_tab[i][i_count - 1] == intakes_tab[i_count - 1][1] and
@@ -163,8 +163,7 @@ def calc_abs_tab(intakes_tab):
     return abs_tab
 
 
-# Table with total absorption, total elimination
-# and current bac for each timestamp
+# Create table: timestamp | absorbed_so_far | eliminated_so_far | BAC
 def calc_bac_tab(abs_tab, vda, first_intake, last_intake):
     bac_tab = []
 
@@ -173,31 +172,31 @@ def calc_bac_tab(abs_tab, vda, first_intake, last_intake):
     i = 0
     while True:
         # Sum absorption from current timestamp
-        total_absorbed = 0
+        absorbed_so_far = 0
         if i < len(abs_tab):
-            total_absorbed = sum(abs_tab[i])
+            absorbed_so_far = sum(abs_tab[i])
         else:
-            total_absorbed = bac_tab[i - 1][1]
+            absorbed_so_far = bac_tab[i - 1][1]
 
-        # Calculate total elimination
+        # Calculate amount of alcohol eliminated so far
         if i > 0:
             prev_bac = bac_tab[i - 1][3]
-            total_eliminated = bac_tab[i - 1][2]
+            eliminated_so_far = bac_tab[i - 1][2]
             current_aer = calc_aer(USER_PREFS['sex'], prev_bac)
             current_eliminated = current_aer * (USER_PREFS['interval'] / 60)
-            total_eliminated += current_eliminated
+            eliminated_so_far += current_eliminated
         else:
-            total_eliminated = 0
+            eliminated_so_far = 0
 
         # Calculate current BAC
-        current_bac = calc_bac(total_absorbed, USER_PREFS['weight'],
-                               vda, total_eliminated)
+        current_bac = calc_bac(absorbed_so_far, USER_PREFS['weight'],
+                               vda, eliminated_so_far)
 
         if current_bac < 0.01:
             current_bac = 0
 
         # Write data to table
-        bac_tab.append([current_time, total_absorbed, total_eliminated, current_bac])
+        bac_tab.append([current_time, absorbed_so_far, eliminated_so_far, current_bac])
 
         # Stop loop when BAC equals 0
         if current_bac == 0 and last_intake < current_time:
